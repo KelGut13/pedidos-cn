@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5002;
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:3002', // Permitir solicitudes desde el frontend
+    origin: ['http://localhost:3000', 'http://localhost:3002'], // Permitir solicitudes desde ambos puertos
     credentials: true
 }));
 app.use(express.json());
@@ -80,31 +80,38 @@ async function initializeDatabase() {
         // Probar conexión
         const isConnected = await testConnection();
         if (!isConnected) {
-            throw new Error('No se pudo conectar a la base de datos');
+            console.log('⚠️  Servidor iniciado sin base de datos - algunas funciones pueden no estar disponibles');
+            return false;
         }
 
         // Inicializar tablas
         await PedidoModel.initializeTable();
         
         console.log('✅ Base de datos inicializada correctamente');
+        return true;
     } catch (error) {
         console.error('❌ Error al inicializar la base de datos:', error.message);
-        process.exit(1);
+        console.log('⚠️  Servidor iniciado sin base de datos - algunas funciones pueden no estar disponibles');
+        return false;
     }
 }
 
 // Iniciar el servidor
 async function startServer() {
     try {
-        // Inicializar base de datos primero
-        await initializeDatabase();
+        // Intentar inicializar base de datos (no es fatal si falla)
+        const dbConnected = await initializeDatabase();
         
         // Iniciar servidor
         app.listen(PORT, () => {
             console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
             console.log(`📱 Frontend esperado en http://localhost:3002`);
-            console.log(`📊 Base de datos: ${process.env.DB_NAME}`);
-            console.log(`🌐 Host DB: ${process.env.DB_HOST}`);
+            if (dbConnected) {
+                console.log(`📊 Base de datos: ${process.env.DB_NAME}`);
+                console.log(`🌐 Host DB: ${process.env.DB_HOST}`);
+            } else {
+                console.log(`⚠️  Base de datos no conectada - configurar .env para funcionalidad completa`);
+            }
         });
     } catch (error) {
         console.error('❌ Error al iniciar el servidor:', error.message);
