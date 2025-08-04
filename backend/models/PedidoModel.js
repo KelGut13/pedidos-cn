@@ -1,252 +1,247 @@
-const { query } = require('../config/database');
+const { pool } = require('../config/database');
+const connection = pool;
 
 class PedidoModel {
-    // Obtener todos los pedidos con información relacionada
-    static async getAllPedidos() {
-        try {
-            const sql = `
-                SELECT 
-                    p.ID_pedido as id,
-                    p.ID_usuario,
-                    p.ID_direccion,
-                    p.fecha,
-                    p.total,
-                    p.estado,
-                    u.nombre as cliente_nombre,
-                    u.email as cliente_email,
-                    u.telefono as cliente_telefono,
-                    CONCAT(d.calle, ' ', d.numero_exterior, 
-                           IFNULL(CONCAT(' Int. ', d.numero_interior), ''), 
-                           ', ', d.colonia, ', ', d.ciudad, ', ', d.estado) as direccion_completa
-                FROM pedidos p
-                INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
-                LEFT JOIN direcciones d ON p.ID_direccion = d.ID_direccion
-                ORDER BY p.fecha DESC
-            `;
-            return await query(sql);
-        } catch (error) {
-            console.error('Error al obtener pedidos:', error);
-            throw error;
-        }
+  
+  // Obtener todos los pedidos con información del usuario y dirección
+  static async obtenerTodos() {
+    try {
+      const query = `
+        SELECT 
+          p.ID_pedido as id,
+          p.fecha,
+          p.total,
+          p.estado,
+          CONCAT(u.nombre, ' ', u.primer_apellido, ' ', COALESCE(u.segundo_apellido, '')) as nombre_cliente,
+          u.email,
+          u.telefono,
+          CONCAT(d.calle, ' ', d.numero_exterior, 
+                 CASE WHEN d.numero_interior != '' THEN CONCAT(' Int. ', d.numero_interior) ELSE '' END,
+                 ', ', d.colonia, ', ', d.ciudad, ', ', d.estado, ' CP ', d.codigo_postal) as direccion_completa
+        FROM pedidos p
+        INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+        INNER JOIN direcciones d ON p.ID_direccion = d.ID_direccion
+        ORDER BY p.fecha DESC
+      `;
+      
+      const [rows] = await connection.execute(query);
+      return rows;
+    } catch (error) {
+      console.error('Error al obtener pedidos:', error);
+      throw error;
     }
+  }
 
-    // Obtener un pedido por ID con detalles completos
-    static async getPedidoById(id) {
-        try {
-            const sql = `
-                SELECT 
-                    p.ID_pedido as id,
-                    p.ID_usuario,
-                    p.ID_direccion,
-                    p.fecha,
-                    p.total,
-                    p.estado,
-                    u.nombre as cliente_nombre,
-                    u.email as cliente_email,
-                    u.telefono as cliente_telefono,
-                    d.alias as direccion_alias,
-                    d.calle,
-                    d.numero_exterior,
-                    d.numero_interior,
-                    d.colonia,
-                    d.ciudad,
-                    d.estado as direccion_estado,
-                    d.codigo_postal,
-                    d.pais
-                FROM pedidos p
-                INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
-                LEFT JOIN direcciones d ON p.ID_direccion = d.ID_direccion
-                WHERE p.ID_pedido = ?
-            `;
-            const results = await query(sql, [id]);
-            
-            if (results.length > 0) {
-                // Obtener detalles del pedido
-                const detalles = await this.getDetallesPedido(id);
-                return {
-                    ...results[0],
-                    detalles
-                };
-            }
-            
-            return null;
-        } catch (error) {
-            console.error('Error al obtener pedido por ID:', error);
-            throw error;
-        }
+      // Obtener un pedido por ID con todos los detalles
+  static async obtenerPorId(id) {
+    try {
+      // Obtener información básica del pedido
+      const queryPedido = `
+        SELECT 
+          p.ID_pedido as id,
+          p.fecha,
+          p.total,
+          p.estado,
+          CONCAT(u.nombre, ' ', u.primer_apellido, ' ', COALESCE(u.segundo_apellido, '')) as nombre_cliente,
+          u.email,
+          u.telefono,
+          d.calle,
+          d.numero_exterior,
+          d.numero_interior,
+          d.colonia,
+          d.ciudad,
+          d.estado as estado_direccion,
+          d.codigo_postal,
+          d.pais
+        FROM pedidos p
+        INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+        INNER JOIN direcciones d ON p.ID_direccion = d.ID_direccion
+        WHERE p.ID_pedido = ?
+      `;
+      
+      const [pedidoRows] = await connection.execute(queryPedido, [id]);
+      
+      if (pedidoRows.length === 0) {
+        return null;
+      }
+      
+      const pedido = pedidoRows[0];
+      
+      // Obtener los productos del pedido
+      const queryProductos = `
+        SELECT 
+          dp.cantidad,
+          dp.precio_unitario,
+          p.ID_producto,
+          p.nombre,
+          p.descripcion,
+          p.imagen,
+          m.nombre_marca,
+          mt.nombre_material,
+          c.nombre_categoria,
+          g.nombre_genero,
+          (dp.cantidad * dp.precio_unitario) as subtotal
+        FROM detalle_pedido dp
+        INNER JOIN productos p ON dp.ID_producto = p.ID_producto
+        LEFT JOIN marcas m ON p.id_marca = m.ID_marca
+        LEFT JOIN material mt ON p.id_material = mt.ID_material
+        LEFT JOIN categorias c ON p.id_categoria = c.ID_categoria
+        LEFT JOIN genero g ON p.id_genero = g.ID_genero
+        WHERE dp.ID_pedido = ?
+        ORDER BY p.nombre
+      `;
+      
+      const [productosRows] = await connection.execute(queryProductos, [id]);
+      
+      // Construir el objeto pedido completo
+      const pedidoCompleto = {
+        ...pedido,
+        direccion_completa: `${pedido.calle} ${pedido.numero_exterior}${pedido.numero_interior ? ' Int. ' + pedido.numero_interior : ''}, ${pedido.colonia}, ${pedido.ciudad}, ${pedido.estado_direccion} CP ${pedido.codigo_postal}`,
+        productos: productosRows.map(producto => ({
+          ...producto,
+          imagen: producto.imagen ? producto.imagen.split(',')[0] : null // Tomar solo la primera imagen
+        }))
+      };
+      
+      return pedidoCompleto;
+    } catch (error) {
+      console.error('Error al obtener pedido por ID:', error);
+      throw error;
     }
+  }
 
-    // Obtener detalles de un pedido (productos)
-    static async getDetallesPedido(idPedido) {
-        try {
-            const sql = `
-                SELECT 
-                    dp.ID_detalle,
-                    dp.cantidad,
-                    dp.precio_unitario,
-                    pr.ID_producto,
-                    pr.nombre as producto_nombre,
-                    pr.descripcion as producto_descripcion,
-                    pr.imagen as producto_imagen,
-                    m.nombre_marca,
-                    mt.nombre_material,
-                    c.nombre_categoria,
-                    g.nombre_genero
-                FROM detalle_pedido dp
-                INNER JOIN productos pr ON dp.ID_producto = pr.ID_producto
-                LEFT JOIN marcas m ON pr.id_marca = m.ID_marca
-                LEFT JOIN material mt ON pr.id_material = mt.ID_material
-                LEFT JOIN categorias c ON pr.id_categoria = c.ID_categoria
-                LEFT JOIN genero g ON pr.id_genero = g.ID_genero
-                WHERE dp.ID_pedido = ?
-            `;
-            return await query(sql, [idPedido]);
-        } catch (error) {
-            console.error('Error al obtener detalles del pedido:', error);
-            throw error;
-        }
+  // Actualizar estado de un pedido
+  static async actualizarEstado(id, nuevoEstado) {
+    try {
+      const query = `
+        UPDATE pedidos 
+        SET estado = ?
+        WHERE ID_pedido = ?
+      `;
+      
+      const [result] = await connection.execute(query, [nuevoEstado, id]);
+      
+      if (result.affectedRows === 0) {
+        throw new Error('Pedido no encontrado');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error al actualizar estado del pedido:', error);
+      throw error;
     }
+  }
 
-    // Crear un nuevo pedido (simplificado para demo)
-    static async createPedido(pedidoData) {
-        try {
-            const { ID_usuario, ID_direccion, total, estado = 'pendiente' } = pedidoData;
-            
-            const sql = `
-                INSERT INTO pedidos (ID_usuario, ID_direccion, fecha, total, estado)
-                VALUES (?, ?, NOW(), ?, ?)
-            `;
-            
-            const result = await query(sql, [ID_usuario, ID_direccion, total, estado]);
-            
-            // Retornar el pedido creado
-            return await this.getPedidoById(result.insertId);
-        } catch (error) {
-            console.error('Error al crear pedido:', error);
-            throw error;
-        }
-    }
+  // Obtener estadísticas de pedidos
+  static async obtenerEstadisticas() {
+    try {
+      const queries = {
+        total: 'SELECT COUNT(*) as count FROM pedidos',
+        pendientes: 'SELECT COUNT(*) as count FROM pedidos WHERE estado = "pendiente"',
+        procesando: 'SELECT COUNT(*) as count FROM pedidos WHERE estado = "procesando"',
+        enviados: 'SELECT COUNT(*) as count FROM pedidos WHERE estado = "enviado"',
+        entregados: 'SELECT COUNT(*) as count FROM pedidos WHERE estado = "entregado"',
+        ventas_hoy: `
+          SELECT COALESCE(SUM(total), 0) as total 
+          FROM pedidos 
+          WHERE DATE(fecha) = CURDATE() AND estado != 'cancelado'
+        `,
+        ventas_mes: `
+          SELECT COALESCE(SUM(total), 0) as total 
+          FROM pedidos 
+          WHERE MONTH(fecha) = MONTH(CURDATE()) 
+          AND YEAR(fecha) = YEAR(CURDATE()) 
+          AND estado != 'cancelado'
+        `
+      };
 
-    // Actualizar un pedido
-    static async updatePedido(id, pedidoData) {
-        try {
-            const { estado, total } = pedidoData;
-            
-            const sql = `
-                UPDATE pedidos 
-                SET estado = ?, total = ?
-                WHERE ID_pedido = ?
-            `;
-            
-            await query(sql, [estado, total, id]);
-            
-            // Retornar el pedido actualizado
-            return await this.getPedidoById(id);
-        } catch (error) {
-            console.error('Error al actualizar pedido:', error);
-            throw error;
-        }
+      const stats = {};
+      
+      for (const [key, query] of Object.entries(queries)) {
+        const [rows] = await connection.execute(query);
+        stats[key] = rows[0].count !== undefined ? rows[0].count : rows[0].total;
+      }
+      
+      return stats;
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      throw error;
     }
+  }
 
-    // Eliminar un pedido
-    static async deletePedido(id) {
-        try {
-            // Primero eliminar detalles del pedido
-            await query('DELETE FROM detalle_pedido WHERE ID_pedido = ?', [id]);
-            
-            // Luego eliminar el pedido
-            const sql = 'DELETE FROM pedidos WHERE ID_pedido = ?';
-            const result = await query(sql, [id]);
-            return result.affectedRows > 0;
-        } catch (error) {
-            console.error('Error al eliminar pedido:', error);
-            throw error;
-        }
+  // Obtener pedidos por estado
+  static async obtenerPorEstado(estado) {
+    try {
+      const query = `
+        SELECT 
+          p.ID_pedido as id,
+          p.fecha,
+          p.total,
+          p.estado,
+          CONCAT(u.nombre, ' ', u.primer_apellido, ' ', COALESCE(u.segundo_apellido, '')) as nombre_cliente,
+          u.email,
+          u.telefono
+        FROM pedidos p
+        INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+        WHERE p.estado = ?
+        ORDER BY p.fecha DESC
+      `;
+      
+      const [rows] = await connection.execute(query, [estado]);
+      return rows;
+    } catch (error) {
+      console.error('Error al obtener pedidos por estado:', error);
+      throw error;
     }
+  }
 
-    // Obtener pedidos por estado
-    static async getPedidosByEstado(estado) {
-        try {
-            const sql = `
-                SELECT 
-                    p.ID_pedido as id,
-                    p.ID_usuario,
-                    p.ID_direccion,
-                    p.fecha,
-                    p.total,
-                    p.estado,
-                    u.nombre as cliente_nombre,
-                    u.email as cliente_email,
-                    CONCAT(d.calle, ' ', d.numero_exterior, ', ', d.colonia, ', ', d.ciudad) as direccion_completa
-                FROM pedidos p
-                INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
-                LEFT JOIN direcciones d ON p.ID_direccion = d.ID_direccion
-                WHERE p.estado = ?
-                ORDER BY p.fecha DESC
-            `;
-            return await query(sql, [estado]);
-        } catch (error) {
-            console.error('Error al obtener pedidos por estado:', error);
-            throw error;
-        }
+  // Buscar pedidos por término de búsqueda
+  static async buscar(termino) {
+    try {
+      const query = `
+        SELECT 
+          p.ID_pedido as id,
+          p.fecha,
+          p.total,
+          p.estado,
+          CONCAT(u.nombre, ' ', u.primer_apellido, ' ', COALESCE(u.segundo_apellido, '')) as nombre_cliente,
+          u.email,
+          u.telefono
+        FROM pedidos p
+        INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+        WHERE u.nombre LIKE ? 
+           OR u.primer_apellido LIKE ? 
+           OR u.segundo_apellido LIKE ?
+           OR u.email LIKE ?
+           OR p.ID_pedido LIKE ?
+        ORDER BY p.fecha DESC
+      `;
+      
+      const searchTerm = `%${termino}%`;
+      const [rows] = await connection.execute(query, [
+        searchTerm, searchTerm, searchTerm, searchTerm, searchTerm
+      ]);
+      
+      return rows;
+    } catch (error) {
+      console.error('Error al buscar pedidos:', error);
+      throw error;
     }
+  }
 
-    // Obtener pedidos por usuario
-    static async getPedidosByUsuario(idUsuario) {
-        try {
-            const sql = `
-                SELECT 
-                    p.ID_pedido as id,
-                    p.fecha,
-                    p.total,
-                    p.estado,
-                    COUNT(dp.ID_detalle) as total_productos
-                FROM pedidos p
-                LEFT JOIN detalle_pedido dp ON p.ID_pedido = dp.ID_pedido
-                WHERE p.ID_usuario = ?
-                GROUP BY p.ID_pedido
-                ORDER BY p.fecha DESC
-            `;
-            return await query(sql, [idUsuario]);
-        } catch (error) {
-            console.error('Error al obtener pedidos por usuario:', error);
-            throw error;
-        }
+  // Método para verificar que la tabla existe (requerido por server.js)
+  static async initializeTable() {
+    try {
+      // Solo verificar que la tabla existe
+      const [rows] = await connection.execute('DESCRIBE pedidos');
+      console.log('✅ Tabla "pedidos" verificada exitosamente');
+      return true;
+    } catch (error) {
+      console.error('❌ Error: la tabla "pedidos" no existe en la base de datos');
+      throw error;
     }
-
-    // Obtener estadísticas de pedidos
-    static async getEstadisticasPedidos() {
-        try {
-            const sql = `
-                SELECT 
-                    COUNT(*) as total_pedidos,
-                    SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
-                    SUM(CASE WHEN estado = 'completado' THEN 1 ELSE 0 END) as completados,
-                    SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) as cancelados,
-                    SUM(total) as monto_total,
-                    AVG(total) as monto_promedio
-                FROM pedidos
-            `;
-            const results = await query(sql);
-            return results[0];
-        } catch (error) {
-            console.error('Error al obtener estadísticas:', error);
-            throw error;
-        }
-    }
-
-    // Verificar si la tabla existe (la tabla ya existe en el esquema)
-    static async initializeTable() {
-        try {
-            // Solo verificar que la tabla existe
-            const sql = 'DESCRIBE pedidos';
-            await query(sql);
-            console.log('✅ Tabla "pedidos" verificada exitosamente');
-        } catch (error) {
-            console.error('❌ Error: la tabla "pedidos" no existe en la base de datos');
-            throw error;
-        }
-    }
+  }
 }
 
 module.exports = PedidoModel;
+
