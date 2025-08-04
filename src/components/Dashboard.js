@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Package, TrendingUp, Users, DollarSign, Clock, Eye } from 'lucide-react';
+import { motion } from 'framer-motion';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -24,7 +26,15 @@ const Dashboard = () => {
 
       // Obtener estadísticas de pedidos
       const pedidosResponse = await fetch('http://localhost:5002/api/pedidos');
-      const pedidos = await pedidosResponse.json();
+      const pedidosData = await pedidosResponse.json();
+      
+      // Extraer el array de pedidos de la respuesta
+      const pedidos = pedidosData.success ? pedidosData.data : [];
+
+      // Verificar que pedidos sea un array
+      if (!Array.isArray(pedidos)) {
+        throw new Error('Los datos de pedidos no son válidos');
+      }
 
       // Calcular estadísticas
       const today = new Date();
@@ -117,54 +127,89 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <h2 className="dashboard-title">Dashboard - Resumen General</h2>
+      <motion.h2 
+        className="dashboard-title"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        Dashboard
+      </motion.h2>
       
-      <div className="stats-grid">
+      <motion.div 
+        className="stats-grid"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
         <div className="stat-card">
-          <div className="stat-icon">📊</div>
-          <div className="stat-value">{stats.totalPedidos}</div>
-          <div className="stat-label">Total Pedidos</div>
-          <div className="stat-trend positive">
-            ↗ Todos los tiempos
+          <div className="stat-icon">
+            <Package size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.totalPedidos}</div>
+            <div className="stat-label">Total Pedidos</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">📦</div>
-          <div className="stat-value">{stats.pedidosHoy}</div>
-          <div className="stat-label">Pedidos Hoy</div>
-          <div className="stat-trend positive">
-            📅 {new Date().toLocaleDateString('es-CO')}
+          <div className="stat-icon today">
+            <Clock size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.pedidosHoy}</div>
+            <div className="stat-label">Pedidos Hoy</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">💰</div>
-          <div className="stat-value">{formatCurrency(stats.ingresosMes)}</div>
-          <div className="stat-label">Ingresos Este Mes</div>
-          <div className="stat-trend positive">
-            📈 Mes actual
+          <div className="stat-icon revenue">
+            <DollarSign size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{formatCurrency(stats.ingresosMes)}</div>
+            <div className="stat-label">Ingresos Mes</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">👥</div>
-          <div className="stat-value">{stats.clientesActivos}</div>
-          <div className="stat-label">Clientes Activos</div>
-          <div className="stat-trend positive">
-            🗓️ Este mes
+          <div className="stat-icon users">
+            <Users size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.clientesActivos}</div>
+            <div className="stat-label">Clientes Activos</div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="recent-orders">
-        <h3>Pedidos Recientes</h3>
+      <motion.div 
+        className="recent-orders"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <div className="section-header">
+          <h3>Pedidos Recientes</h3>
+          <Link to="/pedidos" className="view-all-btn">
+            <Eye size={16} />
+            <span>Ver todos</span>
+          </Link>
+        </div>
         {recentOrders.length > 0 ? (
           <div className="orders-list">
-            {recentOrders.map(order => (
-              <div key={order.id} className="order-item">
+            {recentOrders.map((order, index) => (
+              <motion.div 
+                key={order.id} 
+                className="order-item"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
                 <div className="order-info">
-                  <div className="order-icon">📋</div>
+                  <div className="order-icon">
+                    <Package size={20} />
+                  </div>
                   <div className="order-details">
                     <h4>Pedido #{order.id}</h4>
                     <p>Cliente ID: {order.usuario_id} • {formatDate(order.fecha_pedido)}</p>
@@ -173,54 +218,17 @@ const Dashboard = () => {
                 <div className={`order-status ${getStatusColor(order.estado)}`}>
                   {order.estado || 'Pendiente'}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : (
           <div className="empty-state">
-            <span className="empty-state-icon">📋</span>
+            <Package size={32} className="empty-state-icon" />
             <h3>No hay pedidos recientes</h3>
             <p>Los nuevos pedidos aparecerán aquí</p>
           </div>
         )}
-      </div>
-
-      <div className="quick-actions">
-        <h3>Acciones Rápidas</h3>
-        <div className="actions-grid">
-          <Link to="/pedidos" className="action-card">
-            <div className="action-icon">📦</div>
-            <div className="action-content">
-              <h4>Ver Todos los Pedidos</h4>
-              <p>Gestionar y revisar pedidos</p>
-            </div>
-          </Link>
-
-          <Link to="/productos" className="action-card">
-            <div className="action-icon">💍</div>
-            <div className="action-content">
-              <h4>Administrar Productos</h4>
-              <p>Catálogo de joyería</p>
-            </div>
-          </Link>
-
-          <Link to="/clientes" className="action-card">
-            <div className="action-icon">👥</div>
-            <div className="action-content">
-              <h4>Gestionar Clientes</h4>
-              <p>Base de datos de clientes</p>
-            </div>
-          </Link>
-
-          <Link to="/reportes" className="action-card">
-            <div className="action-icon">📈</div>
-            <div className="action-content">
-              <h4>Ver Reportes</h4>
-              <p>Análisis y estadísticas</p>
-            </div>
-          </Link>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

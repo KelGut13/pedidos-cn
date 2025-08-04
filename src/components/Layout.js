@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Home, Package, LogOut, Sparkles } from 'lucide-react';
 import './Layout.css';
 
 const Layout = ({ children }) => {
@@ -9,91 +10,59 @@ const Layout = ({ children }) => {
     return location.pathname === path;
   };
 
+  const handleLogout = () => {
+    // Add logout logic here if needed
+    console.log('Logout clicked');
+  };
+
   return (
     <div className="layout">
+      {/* Header */}
       <header className="header">
         <div className="header-content">
-          <div className="header-left">
-            <div className="admin-info">
-              <div className="admin-avatar">
-                AS
-              </div>
-              <div className="admin-details">
-                <h3>Admin Store</h3>
-                <p>Sistema Administrador</p>
-              </div>
+          {/* Brand */}
+          <div className="brand">
+            <div className="brand-icon">
+              <Sparkles />
+            </div>
+            <div className="brand-text">
+              <h1>Pedidos CN</h1>
+              <p>Sistema de Gestión</p>
             </div>
           </div>
-          
-          <div className="header-title">
-            <h1>
-              <span className="icon">💎</span>
-              Panel de Administración - Joyería CN
-            </h1>
-            <p>Gestión de Pedidos y Productos</p>
-          </div>
-          
-          <button className="logout-btn">
-            <span>👤</span>
-            Cerrar Sesión
+
+          {/* Logout Button */}
+          <button className="logout-btn" onClick={handleLogout}>
+            <LogOut size={18} />
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="main-content">
+        {/* Navigation */}
         <nav className="navigation">
-          <Link 
-            to="/" 
-            className={`nav-item ${isActive('/') ? 'active' : ''}`}
-          >
-            <span>�</span>
-            Dashboard
-          </Link>
-          <Link 
-            to="/pedidos" 
-            className={`nav-item ${isActive('/pedidos') ? 'active' : ''}`}
-          >
-            <span>📦</span>
-            Pedidos
-          </Link>
-          <Link 
-            to="/productos" 
-            className={`nav-item ${isActive('/productos') ? 'active' : ''}`}
-          >
-            <span>💍</span>
-            Productos
-          </Link>
-          <Link 
-            to="/clientes" 
-            className={`nav-item ${isActive('/clientes') ? 'active' : ''}`}
-          >
-            <span>👥</span>
-            Clientes
-          </Link>
-          <Link 
-            to="/reportes" 
-            className={`nav-item ${isActive('/reportes') ? 'active' : ''}`}
-          >
-            <span>📈</span>
-            Reportes
-          </Link>
+          <div className="nav-container">
+            <Link 
+              to="/" 
+              className={`nav-item ${isActive('/') ? 'active' : ''}`}
+            >
+              <Home size={20} />
+              <span>Dashboard</span>
+            </Link>
+            
+            <Link 
+              to="/pedidos" 
+              className={`nav-item ${isActive('/pedidos') ? 'active' : ''}`}
+            >
+              <Package size={20} />
+              <span>Pedidos</span>
+            </Link>
+          </div>
         </nav>
 
-        <div className="status-indicators">
-          <div className="status-indicator active">
-            <div className="status-dot"></div>
-            Sistema Activo
-          </div>
-          <div className="status-indicator">
-            <span>🔗</span>
-            Conectado a BD
-          </div>
-          <div className="status-indicator">
-            <span>⚡</span>
-            API Online
-          </div>
-        </div>
-
+        {/* Content Area */}
         <div className="content">
           {children}
         </div>

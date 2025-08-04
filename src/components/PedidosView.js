@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Package, Filter, Eye, Calendar, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { pedidosService } from '../services/api';
 import './PedidosView.css';
 
