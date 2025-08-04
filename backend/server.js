@@ -2,6 +2,13 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// Importar configuración de base de datos y modelos
+const { testConnection } = require('./config/database');
+const PedidoModel = require('./models/PedidoModel');
+
+// Importar rutas
+const pedidosRoutes = require('./routes/pedidos');
+
 const app = express();
 const PORT = process.env.PORT || 5002;
 
@@ -18,54 +25,96 @@ app.get('/', (req, res) => {
     res.json({ 
         message: 'Servidor backend de Pedidos CN funcionando correctamente',
         port: PORT,
+        database: 'MySQL conectado',
         timestamp: new Date().toISOString()
     });
 });
 
-// Ruta de ejemplo para pedidos
-app.get('/api/pedidos', (req, res) => {
-    res.json([
-        { id: 1, cliente: 'Cliente 1', producto: 'Producto A', estado: 'pendiente' },
-        { id: 2, cliente: 'Cliente 2', producto: 'Producto B', estado: 'completado' }
-    ]);
-});
+// Rutas de la API
+app.use('/api/pedidos', pedidosRoutes);
 
-// Ruta para crear un nuevo pedido
-app.post('/api/pedidos', (req, res) => {
-    const { cliente, producto } = req.body;
-    
-    if (!cliente || !producto) {
-        return res.status(400).json({ 
-            error: 'Cliente y producto son requeridos' 
+// Ruta de salud de la base de datos
+app.get('/api/health/db', async (req, res) => {
+    try {
+        const isConnected = await testConnection();
+        res.json({
+            success: true,
+            database: isConnected ? 'Conectado' : 'Desconectado',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Error al verificar conexión de base de datos',
+            timestamp: new Date().toISOString()
         });
     }
-    
-    const nuevoPedido = {
-        id: Date.now(),
-        cliente,
-        producto,
-        estado: 'pendiente',
-        fecha: new Date().toISOString()
-    };
-    
-    res.status(201).json(nuevoPedido);
 });
 
 // Manejo de errores
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: 'Algo salió mal en el servidor' });
+    res.status(500).json({ 
+        success: false, 
+        error: 'Algo salió mal en el servidor' 
+    });
 });
 
 // Ruta para manejar 404
 app.use('*', (req, res) => {
-    res.status(404).json({ error: 'Ruta no encontrada' });
+    res.status(404).json({ 
+        success: false, 
+        error: 'Ruta no encontrada' 
+    });
 });
+
+// Función para inicializar la base de datos
+async function initializeDatabase() {
+    try {
+        console.log('🔄 Inicializando conexión a base de datos...');
+        
+        // Probar conexión
+        const isConnected = await testConnection();
+        if (!isConnected) {
+            throw new Error('No se pudo conectar a la base de datos');
+        }
+
+        // Inicializar tablas
+        await PedidoModel.initializeTable();
+        
+        console.log('✅ Base de datos inicializada correctamente');
+    } catch (error) {
+        console.error('❌ Error al inicializar la base de datos:', error.message);
+        process.exit(1);
+    }
+}
 
 // Iniciar el servidor
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
-    console.log(`📱 Frontend esperado en http://localhost:3002`);
+async function startServer() {
+    try {
+        // Inicializar base de datos primero
+        await initializeDatabase();
+        
+        // Iniciar servidor
+        app.listen(PORT, () => {
+            console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
+            console.log(`📱 Frontend esperado en http://localhost:3002`);
+            console.log(`📊 Base de datos: ${process.env.DB_NAME}`);
+            console.log(`🌐 Host DB: ${process.env.DB_HOST}`);
+        });
+    } catch (error) {
+        console.error('❌ Error al iniciar el servidor:', error.message);
+        process.exit(1);
+    }
+}
+
+// Manejar cierre graceful del servidor
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Cerrando servidor...');
+    const { closeConnection } = require('./config/database');
+    await closeConnection();
+    process.exit(0);
 });
 
-module.exports = app;
+// Iniciar la aplicación
+startServer();

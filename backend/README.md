@@ -69,9 +69,17 @@ npm run backend
 - **Descripción**: Estado del servidor
 - **URL**: `http://localhost:5002/`
 
+### GET /api/health/db
+- **Descripción**: Verificar conexión a la base de datos
+- **URL**: `http://localhost:5002/api/health/db`
+
 ### GET /api/pedidos
-- **Descripción**: Obtiene lista de pedidos
+- **Descripción**: Obtiene todos los pedidos
 - **URL**: `http://localhost:5002/api/pedidos`
+
+### GET /api/pedidos/:id
+- **Descripción**: Obtiene un pedido específico por ID
+- **URL**: `http://localhost:5002/api/pedidos/1`
 
 ### POST /api/pedidos
 - **Descripción**: Crea un nuevo pedido
@@ -80,18 +88,65 @@ npm run backend
   ```json
   {
     "cliente": "Nombre del cliente",
-    "producto": "Nombre del producto"
+    "producto": "Nombre del producto",
+    "estado": "pendiente"
   }
   ```
 
+### PUT /api/pedidos/:id
+- **Descripción**: Actualiza un pedido existente
+- **URL**: `http://localhost:5002/api/pedidos/1`
+- **Body**:
+  ```json
+  {
+    "cliente": "Nombre del cliente actualizado",
+    "producto": "Nombre del producto actualizado",
+    "estado": "completado"
+  }
+  ```
+
+### DELETE /api/pedidos/:id
+- **Descripción**: Elimina un pedido
+- **URL**: `http://localhost:5002/api/pedidos/1`
+
+### GET /api/pedidos/estado/:estado
+- **Descripción**: Obtiene pedidos por estado
+- **URL**: `http://localhost:5002/api/pedidos/estado/pendiente`
+- **Estados válidos**: `pendiente`, `en_proceso`, `completado`, `cancelado`
+
 ## 🔧 Variables de Entorno
 
-Crea un archivo `.env` en la carpeta `backend/` con:
+El archivo `.env` en la carpeta `backend/` debe contener:
 
 ```env
+# Servidor
 PORT=5002
 NODE_ENV=development
+
+# Base de datos MySQL
+DB_HOST=srv1009.hstgr.io
+DB_USER=u465901502_admin
+DB_PASSWORD=@UTequipo2
+DB_NAME=u465901502_joyeria
+DB_PORT=3306
+
+# CORS Origin
 FRONTEND_URL=http://localhost:3002
+```
+
+## 🗄️ Base de Datos
+
+La aplicación se conecta a una base de datos MySQL y crea automáticamente la tabla `pedidos` con la siguiente estructura:
+
+```sql
+CREATE TABLE pedidos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cliente VARCHAR(255) NOT NULL,
+    producto VARCHAR(255) NOT NULL,
+    estado ENUM('pendiente', 'en_proceso', 'completado', 'cancelado') DEFAULT 'pendiente',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 ```
 
 ## 🤝 Contribución
