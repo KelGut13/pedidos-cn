@@ -294,11 +294,12 @@
 /* Sección del cliente */
 .pedidos-cliente-section {
   margin-bottom: 1rem;
+  padding: 0.5rem 0;
 }
 
 .pedidos-cliente-main {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -306,6 +307,26 @@
   color: var(--gray-400);
   margin-top: 0.125rem;
   flex-shrink: 0;
+}
+
+.pedidos-cliente-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--primary-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.pedidos-cliente-iniciales {
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 .pedidos-cliente-details {

@@ -97,7 +97,7 @@ class PedidoModel {
       const pedidoCompleto = {
         ...pedido,
         direccion_completa: `${pedido.calle} ${pedido.numero_exterior}${pedido.numero_interior ? ' Int. ' + pedido.numero_interior : ''}, ${pedido.colonia}, ${pedido.ciudad}, ${pedido.estado_direccion} CP ${pedido.codigo_postal}`,
-        productos: productosRows.map(producto => ({
+        detalles: productosRows.map(producto => ({
           ...producto,
           imagen: producto.imagen ? producto.imagen.split(',')[0] : null // Tomar solo la primera imagen
         }))

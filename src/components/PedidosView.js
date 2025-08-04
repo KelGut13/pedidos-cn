@@ -239,10 +239,16 @@ const PedidosView = () => {
                   {/* Información del cliente */}
                   <div className="pedidos-cliente-section">
                     <div className="pedidos-cliente-main">
-                      <User size={16} className="pedidos-cliente-icon" />
+                      <div className="pedidos-cliente-avatar">
+                        <span className="pedidos-cliente-iniciales">
+                          {(pedido.nombre_cliente || pedido.cliente_nombre || pedido.nombre) ? 
+                          (pedido.nombre_cliente || pedido.cliente_nombre || pedido.nombre).charAt(0).toUpperCase() : 
+                          'C'}
+                        </span>
+                      </div>
                       <div className="pedidos-cliente-details">
-                        <h3 className="pedidos-cliente-nombre">{pedido.cliente_nombre}</h3>
-                        <p className="pedidos-cliente-email">{pedido.cliente_email}</p>
+                        <h3 className="pedidos-cliente-nombre">{pedido.nombre_cliente || pedido.cliente_nombre || pedido.nombre || 'Cliente'}</h3>
+                        <p className="pedidos-cliente-email">{pedido.cliente_email || pedido.email}</p>
                       </div>
                     </div>
                   </div>

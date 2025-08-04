@@ -131,7 +131,7 @@ const PedidoDetails = () => {
         </div>
         <div className="header-content">
           <div className="header-left">
-            <h1 className="pedido-title">Pedido #{pedido.id}</h1>
+            <h1 className="pedido-title">Pedido #{pedido.ID_pedido || pedido.id}</h1>
             <div className="pedido-badge-container">
               <span 
                 className={`status-badge ${pedido.estado}`}
@@ -177,6 +177,7 @@ const PedidoDetails = () => {
                 </h2>
               </div>
               <div className="info-card-content">
+                <div className="precio-grande">{formatearMoneda(pedido.total)}</div>
                 <div className="info-row">
                   <div className="info-label">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -189,16 +190,18 @@ const PedidoDetails = () => {
                   </div>
                   <div className="info-value">{formatearFecha(pedido.fecha)}</div>
                 </div>
-                <div className="info-row">
-                  <div className="info-label">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="1" x2="12" y2="23"></line>
-                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                    Total
+                {pedido.ID_metodo_pago && (
+                  <div className="info-row">
+                    <div className="info-label">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                      </svg>
+                      Método de pago
+                    </div>
+                    <div className="info-value">{pedido.nombre_metodo || 'No especificado'}</div>
                   </div>
-                  <div className="info-value total-amount">{formatearMoneda(pedido.total)}</div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -216,27 +219,28 @@ const PedidoDetails = () => {
               <div className="info-card-content">
                 <div className="cliente-card">
                   <div className="cliente-avatar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
+                    <span className="cliente-iniciales">{
+                      (pedido.nombre_cliente || pedido.cliente_nombre || pedido.nombre) ? 
+                      (pedido.nombre_cliente || pedido.cliente_nombre || pedido.nombre).charAt(0).toUpperCase() : 
+                      'C'
+                    }</span>
                   </div>
                   <div className="cliente-info">
-                    <h3 className="cliente-nombre">{pedido.cliente_nombre}</h3>
+                    <h3 className="cliente-nombre">{pedido.nombre_cliente || pedido.cliente_nombre || pedido.nombre || 'Cliente'}</h3>
                     <div className="cliente-contacto">
                       <div className="contacto-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                           <polyline points="22,6 12,13 2,6"></polyline>
                         </svg>
-                        {pedido.cliente_email}
+                        {pedido.cliente_email || pedido.email}
                       </div>
-                      {pedido.cliente_telefono && (
+                      {(pedido.cliente_telefono || pedido.telefono) && (
                         <div className="contacto-item">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                           </svg>
-                          {pedido.cliente_telefono}
+                          {pedido.cliente_telefono || pedido.telefono}
                         </div>
                       )}
                     </div>
@@ -246,7 +250,7 @@ const PedidoDetails = () => {
             </div>
 
             {/* Dirección de entrega */}
-            {pedido.calle && (
+            {(pedido.calle || pedido.direccion) && (
               <div className="info-card">
                 <div className="info-card-header">
                   <h2 className="info-card-title">
@@ -260,20 +264,26 @@ const PedidoDetails = () => {
                 <div className="info-card-content">
                   <div className="direccion-card">
                     <div className="direccion-content">
-                      {pedido.direccion_alias && <h4 className="direccion-alias">{pedido.direccion_alias}</h4>}
-                      <div className="direccion-item">
-                        {pedido.calle} {pedido.numero_exterior}
-                        {pedido.numero_interior && ` Int. ${pedido.numero_interior}`}
-                      </div>
-                      <div className="direccion-item">
-                        {pedido.colonia}, {pedido.ciudad}
-                      </div>
-                      <div className="direccion-item">
-                        {pedido.direccion_estado} {pedido.codigo_postal}
-                      </div>
-                      <div className="direccion-item">
-                        {pedido.pais}
-                      </div>
+                      {pedido.alias && <h4 className="direccion-alias">{pedido.alias}</h4>}
+                      {pedido.direccion_completa ? (
+                        <div className="direccion-item">{pedido.direccion_completa}</div>
+                      ) : (
+                        <>
+                          <div className="direccion-item">
+                            {pedido.calle} {pedido.numero_exterior}
+                            {pedido.numero_interior && ` Int. ${pedido.numero_interior}`}
+                          </div>
+                          <div className="direccion-item">
+                            {pedido.colonia}, {pedido.ciudad || pedido.municipio}
+                          </div>
+                          <div className="direccion-item">
+                            {pedido.estado || pedido.direccion_estado} {pedido.codigo_postal}
+                          </div>
+                          <div className="direccion-item">
+                            {pedido.pais || 'México'}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -298,28 +308,39 @@ const PedidoDetails = () => {
                 {pedido.detalles && pedido.detalles.length > 0 ? (
                   <div className="productos-list">
                     {pedido.detalles.map((item) => (
-                      <div key={item.ID_detalle} className="producto-item">
+                      <div key={item.ID_detalle || `detalle-${item.ID_producto}`} className="producto-item">
+                        {item.imagen && (
+                          <div className="producto-imagen">
+                            <img src={item.imagen} alt={item.nombre || item.producto_nombre} />
+                          </div>
+                        )}
                         <div className="producto-info">
-                          <h4 className="producto-nombre">{item.producto_nombre}</h4>
-                          <p className="producto-descripcion">{item.producto_descripcion}</p>
+                          <h4 className="producto-nombre">{item.nombre || item.producto_nombre}</h4>
+                          <p className="producto-descripcion">{item.descripcion || item.producto_descripcion}</p>
                           
                           <div className="producto-meta">
-                            {item.nombre_marca && (
+                            {(item.nombre_marca || item.marca) && (
                               <div className="meta-tag">
                                 <span className="meta-label">Marca:</span>
-                                <span className="meta-value">{item.nombre_marca}</span>
+                                <span className="meta-value">{item.nombre_marca || item.marca}</span>
                               </div>
                             )}
-                            {item.nombre_material && (
+                            {(item.nombre_material || item.material) && (
                               <div className="meta-tag">
                                 <span className="meta-label">Material:</span>
-                                <span className="meta-value">{item.nombre_material}</span>
+                                <span className="meta-value">{item.nombre_material || item.material}</span>
                               </div>
                             )}
-                            {item.nombre_categoria && (
+                            {(item.nombre_categoria || item.categoria) && (
                               <div className="meta-tag">
                                 <span className="meta-label">Categoría:</span>
-                                <span className="meta-value">{item.nombre_categoria}</span>
+                                <span className="meta-value">{item.nombre_categoria || item.categoria}</span>
+                              </div>
+                            )}
+                            {(item.nombre_genero || item.genero) && (
+                              <div className="meta-tag">
+                                <span className="meta-label">Género:</span>
+                                <span className="meta-value">{item.nombre_genero || item.genero}</span>
                               </div>
                             )}
                           </div>
@@ -331,11 +352,11 @@ const PedidoDetails = () => {
                           </div>
                           <div className="precio-item precio-unitario">
                             <span className="precio-label">Precio unitario:</span>
-                            <span className="precio-value">{formatearMoneda(item.precio_unitario)}</span>
+                            <span className="precio-value">{formatearMoneda(item.precio_unitario || item.precio)}</span>
                           </div>
                           <div className="precio-item subtotal">
                             <span className="precio-label">Subtotal:</span>
-                            <span className="precio-value">{formatearMoneda(item.precio_unitario * item.cantidad)}</span>
+                            <span className="precio-value">{formatearMoneda((item.precio_unitario || item.precio) * item.cantidad)}</span>
                           </div>
                         </div>
                       </div>
