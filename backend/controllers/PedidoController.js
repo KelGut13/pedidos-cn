@@ -48,19 +48,20 @@ class PedidoController {
     // Crear un nuevo pedido
     static async createPedido(req, res) {
         try {
-            const { cliente, producto, estado } = req.body;
+            const { ID_usuario, ID_direccion, total, estado } = req.body;
 
             // Validaciones
-            if (!cliente || !producto) {
+            if (!ID_usuario || !total) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Cliente y producto son campos requeridos'
+                    error: 'ID_usuario y total son campos requeridos'
                 });
             }
 
             const nuevoPedido = await PedidoModel.createPedido({
-                cliente,
-                producto,
+                ID_usuario,
+                ID_direccion,
+                total,
                 estado
             });
 
@@ -82,7 +83,7 @@ class PedidoController {
     static async updatePedido(req, res) {
         try {
             const { id } = req.params;
-            const { cliente, producto, estado } = req.body;
+            const { estado, total } = req.body;
 
             // Verificar que el pedido existe
             const pedidoExistente = await PedidoModel.getPedidoById(id);
@@ -94,17 +95,16 @@ class PedidoController {
             }
 
             // Validaciones
-            if (!cliente || !producto || !estado) {
+            if (!estado && !total) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Cliente, producto y estado son campos requeridos'
+                    error: 'Debe proporcionar al menos estado o total para actualizar'
                 });
             }
 
             const pedidoActualizado = await PedidoModel.updatePedido(id, {
-                cliente,
-                producto,
-                estado
+                estado: estado || pedidoExistente.estado,
+                total: total || pedidoExistente.total
             });
 
             res.json({
@@ -161,7 +161,7 @@ class PedidoController {
     static async getPedidosByEstado(req, res) {
         try {
             const { estado } = req.params;
-            const estadosValidos = ['pendiente', 'en_proceso', 'completado', 'cancelado'];
+            const estadosValidos = ['pendiente', 'completado', 'cancelado', 'enviado', 'entregado'];
 
             if (!estadosValidos.includes(estado)) {
                 return res.status(400).json({
@@ -183,6 +183,57 @@ class PedidoController {
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor al obtener pedidos por estado'
+            });
+        }
+    }
+
+    // Obtener pedidos por usuario
+    static async getPedidosByUsuario(req, res) {
+        try {
+            const { idUsuario } = req.params;
+
+            if (!idUsuario || isNaN(idUsuario)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'ID de usuario no válido'
+                });
+            }
+
+            const pedidos = await PedidoModel.getPedidosByUsuario(idUsuario);
+            
+            res.json({
+                success: true,
+                data: pedidos,
+                count: pedidos.length,
+                id_usuario: parseInt(idUsuario)
+            });
+        } catch (error) {
+            console.error('Error en getPedidosByUsuario:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor al obtener pedidos del usuario'
+            });
+        }
+    }
+
+    // Obtener estadísticas de pedidos
+    static async getEstadisticasPedidos(req, res) {
+        try {
+            const estadisticas = await PedidoModel.getEstadisticasPedidos();
+            
+            res.json({
+                success: true,
+                data: {
+                    ...estadisticas,
+                    monto_total: parseFloat(estadisticas.monto_total) || 0,
+                    monto_promedio: parseFloat(estadisticas.monto_promedio) || 0
+                }
+            });
+        } catch (error) {
+            console.error('Error en getEstadisticasPedidos:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor al obtener estadísticas'
             });
         }
     }

@@ -1,19 +1,27 @@
 const { query } = require('../config/database');
 
 class PedidoModel {
-    // Obtener todos los pedidos
+    // Obtener todos los pedidos con información relacionada
     static async getAllPedidos() {
         try {
             const sql = `
                 SELECT 
-                    id,
-                    cliente,
-                    producto,
-                    estado,
-                    fecha_creacion,
-                    fecha_actualizacion
-                FROM pedidos 
-                ORDER BY fecha_creacion DESC
+                    p.ID_pedido as id,
+                    p.ID_usuario,
+                    p.ID_direccion,
+                    p.fecha,
+                    p.total,
+                    p.estado,
+                    u.nombre as cliente_nombre,
+                    u.email as cliente_email,
+                    u.telefono as cliente_telefono,
+                    CONCAT(d.calle, ' ', d.numero_exterior, 
+                           IFNULL(CONCAT(' Int. ', d.numero_interior), ''), 
+                           ', ', d.colonia, ', ', d.ciudad, ', ', d.estado) as direccion_completa
+                FROM pedidos p
+                INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+                LEFT JOIN direcciones d ON p.ID_direccion = d.ID_direccion
+                ORDER BY p.fecha DESC
             `;
             return await query(sql);
         } catch (error) {
@@ -22,39 +30,94 @@ class PedidoModel {
         }
     }
 
-    // Obtener un pedido por ID
+    // Obtener un pedido por ID con detalles completos
     static async getPedidoById(id) {
         try {
             const sql = `
                 SELECT 
-                    id,
-                    cliente,
-                    producto,
-                    estado,
-                    fecha_creacion,
-                    fecha_actualizacion
-                FROM pedidos 
-                WHERE id = ?
+                    p.ID_pedido as id,
+                    p.ID_usuario,
+                    p.ID_direccion,
+                    p.fecha,
+                    p.total,
+                    p.estado,
+                    u.nombre as cliente_nombre,
+                    u.email as cliente_email,
+                    u.telefono as cliente_telefono,
+                    d.alias as direccion_alias,
+                    d.calle,
+                    d.numero_exterior,
+                    d.numero_interior,
+                    d.colonia,
+                    d.ciudad,
+                    d.estado as direccion_estado,
+                    d.codigo_postal,
+                    d.pais
+                FROM pedidos p
+                INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+                LEFT JOIN direcciones d ON p.ID_direccion = d.ID_direccion
+                WHERE p.ID_pedido = ?
             `;
             const results = await query(sql, [id]);
-            return results[0] || null;
+            
+            if (results.length > 0) {
+                // Obtener detalles del pedido
+                const detalles = await this.getDetallesPedido(id);
+                return {
+                    ...results[0],
+                    detalles
+                };
+            }
+            
+            return null;
         } catch (error) {
             console.error('Error al obtener pedido por ID:', error);
             throw error;
         }
     }
 
-    // Crear un nuevo pedido
+    // Obtener detalles de un pedido (productos)
+    static async getDetallesPedido(idPedido) {
+        try {
+            const sql = `
+                SELECT 
+                    dp.ID_detalle,
+                    dp.cantidad,
+                    dp.precio_unitario,
+                    pr.ID_producto,
+                    pr.nombre as producto_nombre,
+                    pr.descripcion as producto_descripcion,
+                    pr.imagen as producto_imagen,
+                    m.nombre_marca,
+                    mt.nombre_material,
+                    c.nombre_categoria,
+                    g.nombre_genero
+                FROM detalle_pedido dp
+                INNER JOIN productos pr ON dp.ID_producto = pr.ID_producto
+                LEFT JOIN marcas m ON pr.id_marca = m.ID_marca
+                LEFT JOIN material mt ON pr.id_material = mt.ID_material
+                LEFT JOIN categorias c ON pr.id_categoria = c.ID_categoria
+                LEFT JOIN genero g ON pr.id_genero = g.ID_genero
+                WHERE dp.ID_pedido = ?
+            `;
+            return await query(sql, [idPedido]);
+        } catch (error) {
+            console.error('Error al obtener detalles del pedido:', error);
+            throw error;
+        }
+    }
+
+    // Crear un nuevo pedido (simplificado para demo)
     static async createPedido(pedidoData) {
         try {
-            const { cliente, producto, estado = 'pendiente' } = pedidoData;
+            const { ID_usuario, ID_direccion, total, estado = 'pendiente' } = pedidoData;
             
             const sql = `
-                INSERT INTO pedidos (cliente, producto, estado, fecha_creacion, fecha_actualizacion)
-                VALUES (?, ?, ?, NOW(), NOW())
+                INSERT INTO pedidos (ID_usuario, ID_direccion, fecha, total, estado)
+                VALUES (?, ?, NOW(), ?, ?)
             `;
             
-            const result = await query(sql, [cliente, producto, estado]);
+            const result = await query(sql, [ID_usuario, ID_direccion, total, estado]);
             
             // Retornar el pedido creado
             return await this.getPedidoById(result.insertId);
@@ -67,15 +130,15 @@ class PedidoModel {
     // Actualizar un pedido
     static async updatePedido(id, pedidoData) {
         try {
-            const { cliente, producto, estado } = pedidoData;
+            const { estado, total } = pedidoData;
             
             const sql = `
                 UPDATE pedidos 
-                SET cliente = ?, producto = ?, estado = ?, fecha_actualizacion = NOW()
-                WHERE id = ?
+                SET estado = ?, total = ?
+                WHERE ID_pedido = ?
             `;
             
-            await query(sql, [cliente, producto, estado, id]);
+            await query(sql, [estado, total, id]);
             
             // Retornar el pedido actualizado
             return await this.getPedidoById(id);
@@ -88,7 +151,11 @@ class PedidoModel {
     // Eliminar un pedido
     static async deletePedido(id) {
         try {
-            const sql = 'DELETE FROM pedidos WHERE id = ?';
+            // Primero eliminar detalles del pedido
+            await query('DELETE FROM detalle_pedido WHERE ID_pedido = ?', [id]);
+            
+            // Luego eliminar el pedido
+            const sql = 'DELETE FROM pedidos WHERE ID_pedido = ?';
             const result = await query(sql, [id]);
             return result.affectedRows > 0;
         } catch (error) {
@@ -102,15 +169,20 @@ class PedidoModel {
         try {
             const sql = `
                 SELECT 
-                    id,
-                    cliente,
-                    producto,
-                    estado,
-                    fecha_creacion,
-                    fecha_actualizacion
-                FROM pedidos 
-                WHERE estado = ?
-                ORDER BY fecha_creacion DESC
+                    p.ID_pedido as id,
+                    p.ID_usuario,
+                    p.ID_direccion,
+                    p.fecha,
+                    p.total,
+                    p.estado,
+                    u.nombre as cliente_nombre,
+                    u.email as cliente_email,
+                    CONCAT(d.calle, ' ', d.numero_exterior, ', ', d.colonia, ', ', d.ciudad) as direccion_completa
+                FROM pedidos p
+                INNER JOIN usuarios u ON p.ID_usuario = u.ID_usuario
+                LEFT JOIN direcciones d ON p.ID_direccion = d.ID_direccion
+                WHERE p.estado = ?
+                ORDER BY p.fecha DESC
             `;
             return await query(sql, [estado]);
         } catch (error) {
@@ -119,24 +191,59 @@ class PedidoModel {
         }
     }
 
-    // Verificar si existe la tabla y crearla si no existe
+    // Obtener pedidos por usuario
+    static async getPedidosByUsuario(idUsuario) {
+        try {
+            const sql = `
+                SELECT 
+                    p.ID_pedido as id,
+                    p.fecha,
+                    p.total,
+                    p.estado,
+                    COUNT(dp.ID_detalle) as total_productos
+                FROM pedidos p
+                LEFT JOIN detalle_pedido dp ON p.ID_pedido = dp.ID_pedido
+                WHERE p.ID_usuario = ?
+                GROUP BY p.ID_pedido
+                ORDER BY p.fecha DESC
+            `;
+            return await query(sql, [idUsuario]);
+        } catch (error) {
+            console.error('Error al obtener pedidos por usuario:', error);
+            throw error;
+        }
+    }
+
+    // Obtener estadísticas de pedidos
+    static async getEstadisticasPedidos() {
+        try {
+            const sql = `
+                SELECT 
+                    COUNT(*) as total_pedidos,
+                    SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
+                    SUM(CASE WHEN estado = 'completado' THEN 1 ELSE 0 END) as completados,
+                    SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) as cancelados,
+                    SUM(total) as monto_total,
+                    AVG(total) as monto_promedio
+                FROM pedidos
+            `;
+            const results = await query(sql);
+            return results[0];
+        } catch (error) {
+            console.error('Error al obtener estadísticas:', error);
+            throw error;
+        }
+    }
+
+    // Verificar si la tabla existe (la tabla ya existe en el esquema)
     static async initializeTable() {
         try {
-            const createTableSQL = `
-                CREATE TABLE IF NOT EXISTS pedidos (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    cliente VARCHAR(255) NOT NULL,
-                    producto VARCHAR(255) NOT NULL,
-                    estado ENUM('pendiente', 'en_proceso', 'completado', 'cancelado') DEFAULT 'pendiente',
-                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            `;
-            
-            await query(createTableSQL);
-            console.log('✅ Tabla "pedidos" verificada/creada exitosamente');
+            // Solo verificar que la tabla existe
+            const sql = 'DESCRIBE pedidos';
+            await query(sql);
+            console.log('✅ Tabla "pedidos" verificada exitosamente');
         } catch (error) {
-            console.error('❌ Error al crear/verificar tabla pedidos:', error);
+            console.error('❌ Error: la tabla "pedidos" no existe en la base de datos');
             throw error;
         }
     }

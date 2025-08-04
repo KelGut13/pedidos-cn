@@ -8,6 +8,8 @@ const PedidoModel = require('./models/PedidoModel');
 
 // Importar rutas
 const pedidosRoutes = require('./routes/pedidos');
+const usuariosRoutes = require('./routes/usuarios');
+const productosRoutes = require('./routes/productos');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -32,6 +34,8 @@ app.get('/', (req, res) => {
 
 // Rutas de la API
 app.use('/api/pedidos', pedidosRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/productos', productosRoutes);
 
 // Ruta de salud de la base de datos
 app.get('/api/health/db', async (req, res) => {

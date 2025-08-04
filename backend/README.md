@@ -65,54 +65,55 @@ npm run backend
 
 ## 📡 API Endpoints
 
-### GET /
-- **Descripción**: Estado del servidor
-- **URL**: `http://localhost:5002/`
+### 🏠 Sistema
+- **GET /** - Estado del servidor
+- **GET /api/health/db** - Verificar conexión a la base de datos
 
-### GET /api/health/db
-- **Descripción**: Verificar conexión a la base de datos
-- **URL**: `http://localhost:5002/api/health/db`
+### 📦 Pedidos
+- **GET /api/pedidos** - Obtener todos los pedidos con información de cliente y dirección
+- **GET /api/pedidos/:id** - Obtener pedido específico con detalles completos
+- **GET /api/pedidos/estadisticas** - Estadísticas generales de pedidos
+- **GET /api/pedidos/estado/:estado** - Pedidos por estado (`pendiente`, `completado`, `cancelado`, `enviado`, `entregado`)
+- **GET /api/pedidos/usuario/:idUsuario** - Pedidos de un usuario específico
+- **POST /api/pedidos** - Crear nuevo pedido
+- **PUT /api/pedidos/:id** - Actualizar pedido
+- **DELETE /api/pedidos/:id** - Eliminar pedido
 
-### GET /api/pedidos
-- **Descripción**: Obtiene todos los pedidos
-- **URL**: `http://localhost:5002/api/pedidos`
+### 👥 Usuarios
+- **GET /api/usuarios** - Obtener todos los usuarios
+- **GET /api/usuarios/:id** - Obtener usuario específico
+- **POST /api/usuarios** - Crear nuevo usuario
 
-### GET /api/pedidos/:id
-- **Descripción**: Obtiene un pedido específico por ID
-- **URL**: `http://localhost:5002/api/pedidos/1`
+### 🛍️ Productos
+- **GET /api/productos** - Obtener todos los productos activos
+- **GET /api/productos/:id** - Obtener producto específico
+- **GET /api/productos/search?q=término** - Buscar productos por nombre/descripción
+- **GET /api/productos/categoria/:idCategoria** - Productos por categoría
+- **GET /api/productos/stock-bajo?limite=10** - Productos con stock bajo
 
-### POST /api/pedidos
-- **Descripción**: Crea un nuevo pedido
-- **URL**: `http://localhost:5002/api/pedidos`
-- **Body**:
-  ```json
-  {
-    "cliente": "Nombre del cliente",
-    "producto": "Nombre del producto",
+### 📊 Ejemplos de Uso
+
+#### Crear un pedido:
+```bash
+curl -X POST http://localhost:5002/api/pedidos \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ID_usuario": 1,
+    "ID_direccion": 1,
+    "total": 1500.00,
     "estado": "pendiente"
-  }
-  ```
+  }'
+```
 
-### PUT /api/pedidos/:id
-- **Descripción**: Actualiza un pedido existente
-- **URL**: `http://localhost:5002/api/pedidos/1`
-- **Body**:
-  ```json
-  {
-    "cliente": "Nombre del cliente actualizado",
-    "producto": "Nombre del producto actualizado",
-    "estado": "completado"
-  }
-  ```
+#### Buscar productos:
+```bash
+curl "http://localhost:5002/api/productos/search?q=anillo"
+```
 
-### DELETE /api/pedidos/:id
-- **Descripción**: Elimina un pedido
-- **URL**: `http://localhost:5002/api/pedidos/1`
-
-### GET /api/pedidos/estado/:estado
-- **Descripción**: Obtiene pedidos por estado
-- **URL**: `http://localhost:5002/api/pedidos/estado/pendiente`
-- **Estados válidos**: `pendiente`, `en_proceso`, `completado`, `cancelado`
+#### Obtener estadísticas:
+```bash
+curl http://localhost:5002/api/pedidos/estadisticas
+```
 
 ## 🔧 Variables de Entorno
 
@@ -136,18 +137,45 @@ FRONTEND_URL=http://localhost:3002
 
 ## 🗄️ Base de Datos
 
-La aplicación se conecta a una base de datos MySQL y crea automáticamente la tabla `pedidos` con la siguiente estructura:
+La aplicación se conecta a la base de datos MySQL existente `u465901502_joyeria` que contiene las siguientes tablas principales:
 
+### Tablas Principales:
+- **usuarios** - Información de usuarios del sistema
+- **pedidos** - Pedidos realizados por los usuarios
+- **detalle_pedido** - Productos específicos en cada pedido
+- **productos** - Catálogo de productos de joyería
+- **categorias** - Categorías de productos
+- **marcas** - Marcas de productos
+- **material** - Materiales de los productos
+- **genero** - Género de los productos
+- **direcciones** - Direcciones de entrega de usuarios
+- **pagos** - Información de pagos
+- **roles** - Roles de usuario (admin, cliente, etc.)
+
+### Estructura del Pedido:
 ```sql
-CREATE TABLE pedidos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    cliente VARCHAR(255) NOT NULL,
-    producto VARCHAR(255) NOT NULL,
-    estado ENUM('pendiente', 'en_proceso', 'completado', 'cancelado') DEFAULT 'pendiente',
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+pedidos:
+- ID_pedido (PK)
+- ID_usuario (FK -> usuarios)
+- ID_direccion (FK -> direcciones) 
+- fecha
+- total
+- estado
+
+detalle_pedido:
+- ID_detalle (PK)
+- ID_pedido (FK -> pedidos)
+- ID_producto (FK -> productos)
+- cantidad
+- precio_unitario
 ```
+
+### Estados de Pedido:
+- `pendiente` - Pedido creado, esperando procesamiento
+- `completado` - Pedido completado y entregado
+- `cancelado` - Pedido cancelado
+- `enviado` - Pedido enviado
+- `entregado` - Pedido entregado
 
 ## 🤝 Contribución
 
