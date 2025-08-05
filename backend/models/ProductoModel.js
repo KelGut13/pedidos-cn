@@ -5,9 +5,9 @@ class ProductoModel {
     static getImageUrl(imagePath) {
         if (!imagePath) return null;
         
-        // Si ya es una URL completa, reemplazar localhost:3001 con el servidor de admin
-        if (imagePath.startsWith('http://localhost:3001')) {
-            return imagePath.replace('http://localhost:3001', 'https://api.curiosidadesnancy.shop');
+        // Si ya es una URL completa, reemplazar localhost:3001 o localhost:3002 con el servidor de admin
+        if (imagePath.startsWith('http://localhost:3001') || imagePath.startsWith('http://localhost:3002')) {
+            return imagePath.replace(/http:\/\/localhost:300[12]/, 'https://api.curiosidadesnancy.shop');
         }
         
         // Si es una URL completa de otro servidor, devolverla tal como está
@@ -54,7 +54,7 @@ class ProductoModel {
                 // Procesar el string completo de imágenes
                 let imagenProcesada = producto.imagen;
                 if (imagenProcesada) {
-                    imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:3001/g, 'https://api.curiosidadesnancy.shop');
+                    imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:300[12]/g, 'https://api.curiosidadesnancy.shop');
                 }
                 
                 return {
@@ -105,7 +105,7 @@ class ProductoModel {
                 // Procesar las imágenes para agregar URLs completas
                 let imagenProcesada = producto.imagen;
                 if (imagenProcesada) {
-                    imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:3001/g, 'https://api.curiosidadesnancy.shop');
+                    imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:300[12]/g, 'https://api.curiosidadesnancy.shop');
                 }
                 
                 return {

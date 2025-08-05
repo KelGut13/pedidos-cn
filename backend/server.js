@@ -146,7 +146,7 @@ async function startServer() {
         // Iniciar servidor
         app.listen(PORT, () => {
             console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
-            console.log(`📱 Frontend corriendo en http://localhost:3001`);
+            console.log(`📱 Frontend corriendo en http://localhost:3002`);
             if (dbConnected) {
                 console.log(`📊 Base de datos: ${process.env.DB_NAME}`);
                 console.log(`🌐 Host DB: ${process.env.DB_HOST}`);

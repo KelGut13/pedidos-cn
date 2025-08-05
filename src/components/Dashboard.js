@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, TrendingUp, Users, DollarSign, Clock, Eye } from 'lucide-react';
+import { Package, Users, DollarSign, Clock, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pedidosService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -47,19 +47,19 @@ const Dashboard = () => {
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
       const pedidosHoy = pedidos.filter(pedido => 
-        new Date(pedido.fecha_pedido) >= startOfDay
+        new Date(pedido.fecha) >= startOfDay
       ).length;
 
       const pedidosMes = pedidos.filter(pedido => 
-        new Date(pedido.fecha_pedido) >= startOfMonth
+        new Date(pedido.fecha) >= startOfMonth
       );
 
       const ingresosMes = pedidosMes.reduce((total, pedido) => 
         total + parseFloat(pedido.total || 0), 0
       );
 
-      // Clientes únicos este mes
-      const clientesUnicos = new Set(pedidosMes.map(pedido => pedido.usuario_id));
+      // Clientes únicos este mes (usando email como identificador)
+      const clientesUnicos = new Set(pedidosMes.map(pedido => pedido.email));
 
       setStats({
         totalPedidos: pedidos.length,
@@ -70,7 +70,7 @@ const Dashboard = () => {
 
       // Obtener pedidos recientes (últimos 5)
       const pedidosRecientes = pedidos
-        .sort((a, b) => new Date(b.fecha_pedido) - new Date(a.fecha_pedido))
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
         .slice(0, 5);
 
       setRecentOrders(pedidosRecientes);
@@ -84,14 +84,14 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('es-CO', {
+    return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'COP'
+      currency: 'MXN'
     }).format(amount);
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('es-CO', {
+    return new Date(date).toLocaleDateString('es-MX', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -235,7 +235,7 @@ const Dashboard = () => {
                   </div>
                   <div className="order-details">
                     <h4>Pedido #{order.id}</h4>
-                    <p>Cliente ID: {order.usuario_id} • {formatDate(order.fecha_pedido)}</p>
+                    <p>{order.nombre_cliente} • {formatDate(order.fecha)}</p>
                   </div>
                 </div>
                 <div className={`order-status ${getStatusClass(order.estado)}`}>
