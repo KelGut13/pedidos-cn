@@ -1,7 +1,11 @@
 const express = require('express');
 const ProductoController = require('../controllers/ProductoController');
+const { authenticateAdmin } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Proteger todas las rutas de este router - Solo administradores
+router.use(authenticateAdmin);
 
 // GET /api/productos - Obtener todos los productos
 router.get('/', ProductoController.getAllProductos);

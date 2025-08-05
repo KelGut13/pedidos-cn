@@ -8,11 +8,33 @@ const apiClient = axios.create({
   timeout: 10000,
 });
 
+// Interceptor para agregar token de autenticación
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Interceptor para manejo de errores
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error);
+    
+    // Si es error 401, redirigir al login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -77,6 +99,19 @@ export const usuariosService = {
 
   getById: async (id) => {
     const response = await apiClient.get(`/usuarios/${id}`);
+    return response.data;
+  }
+};
+
+// Servicios de Autenticación
+export const authService = {
+  login: async (email, password) => {
+    const response = await apiClient.post('/auth/login', { email, password });
+    return response.data;
+  },
+  
+  validarToken: async (token) => {
+    const response = await apiClient.post('/auth/validar-token', { token });
     return response.data;
   }
 };

@@ -1,0 +1,180 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const UsuarioModel = require('../models/UsuarioModel');
+const { pool } = require('../config/database');
+
+class AuthController {
+    // Login de usuario
+    static async login(req, res) {
+        try {
+            console.log('🔐 Intento de login:', { email: req.body.email });
+            
+            const { email, password } = req.body;
+
+            // Validaciones básicas
+            if (!email || !password) {
+                console.log('❌ Faltan datos:', { email: !!email, password: !!password });
+                return res.status(400).json({
+                    success: false,
+                    error: 'Email y contraseña son requeridos'
+                });
+            }
+
+            // Buscar personal por email
+            console.log('📧 Buscando personal con email:', email);
+            const query = 'SELECT * FROM personal WHERE email_pe = ?';
+            const [personal] = await pool.execute(query, [email]);ryptjs');
+const jwt = require('jsonwebtoken');
+const UsuarioModel = require('../models/UsuarioModel');
+const { pool } = require('../config/database');
+
+class AuthController {
+    // Login de usuario
+    static async login(req, res) {
+        try {
+            console.log('🔐 Intento de login:', { email: req.body.email });
+            
+            const { email, password } = req.body;
+
+            // Validaciones básicas
+            if (!email || !password) {
+                console.log('❌ Faltan datos:', { email: !!email, password: !!password });
+                return res.status(400).json({
+                    success: false,
+                    error: 'Email y contraseña son requeridos'
+                });
+            }
+
+        // Buscar personal por email
+        console.log('� Buscando personal con email:', email);
+        const query = 'SELECT * FROM personal WHERE email_pe = ?';
+        const [personal] = await db.execute(query, [email]);
+        
+        console.log('👥 Personal encontrado:', personal.length);
+        
+        if (personal.length === 0) {
+            console.log('❌ Personal no encontrado');
+            return res.status(401).json({
+                success: false,
+                error: 'Credenciales inválidas'
+            });
+        }
+        
+        const usuario = personal[0];
+        console.log('👤 Personal encontrado:', {
+            id: usuario.ID_personal,
+            email: usuario.email_pe,
+            nombre: usuario.nombres_pe
+        });
+        
+        // Verificar contraseña con bcrypt
+        console.log('🔐 Verificando contraseña...');
+        let passwordValida = false;
+        
+        try {
+            // Intentar verificar con bcrypt (para contraseñas hasheadas)
+            passwordValida = await bcrypt.compare(password, usuario.password_pe);
+            console.log('✅ Verificación bcrypt exitosa:', passwordValida);
+        } catch (bcryptError) {
+            // Si bcrypt falla, probablemente la contraseña está en texto plano
+            console.log('⚠️ Bcrypt falló, verificando contraseña en texto plano:', bcryptError.message);
+            passwordValida = (password === usuario.password_pe);
+            console.log('📝 Verificación texto plano:', passwordValida);
+        }
+        
+        if (!passwordValida) {
+            console.log('❌ Contraseña incorrecta');
+            return res.status(401).json({
+                success: false,
+                error: 'Credenciales inválidas'
+            });
+        }
+
+        console.log('✅ Login exitoso, generando token...');
+
+        // Generar token JWT
+        const token = jwt.sign(
+            { 
+                userId: usuario.ID_personal,
+                email: usuario.email_pe,
+                rol: 2 // Todos los del personal son administradores
+            },
+            process.env.JWT_SECRET || 'secreto_predeterminado',
+            { expiresIn: '12h' }
+        );
+
+        // Preparar respuesta sin password
+        const usuarioRespuesta = {
+            ID_personal: usuario.ID_personal,
+            ID_usuario: usuario.ID_usuario,
+            nombres_pe: usuario.nombres_pe,
+            primer_apellido_pe: usuario.primer_apellido_pe,
+            segundo_apellido_pe: usuario.segundo_apellido_pe,
+            email_pe: usuario.email_pe,
+            telefono_pe: usuario.telefono_pe,
+            ID_rol: 2,
+            nombre_rol: "Administrador"
+        };
+
+        console.log('🎉 Login completado exitosamente para:', email);
+        
+        res.json({
+            success: true,
+            message: 'Login exitoso',
+            usuario: usuarioRespuesta,
+            token
+        });
+        } catch (error) {
+            console.error('💥 Error en login:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor en autenticación'
+            });
+        }
+    }
+
+    // Validar token
+    static async validarToken(req, res) {
+        try {
+            const { token } = req.body;
+            
+            if (!token) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Token no proporcionado'
+                });
+            }
+
+            // Verificar token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_predeterminado');
+            
+            // Obtener usuario actualizado (por si ha cambiado algo)
+            const usuario = await UsuarioModel.getUsuarioById(decoded.userId);
+            
+            if (!usuario) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Usuario no encontrado'
+                });
+            }
+
+            // Remover password de la respuesta
+            const { password: _, ...usuarioSinPassword } = usuario;
+
+            res.json({
+                success: true,
+                valid: true,
+                usuario: usuarioSinPassword
+            });
+        } catch (error) {
+            console.error('Error al validar token:', error);
+            res.status(401).json({
+                success: false,
+                valid: false,
+                error: 'Token inválido o expirado'
+            });
+        }
+    }
+}
+
+module.exports = AuthController;

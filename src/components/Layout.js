@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Package, LogOut, Sparkles } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Package, LogOut, Sparkles, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import './Layout.css';
 
 const Layout = ({ children }) => {
@@ -10,9 +11,12 @@ const Layout = ({ children }) => {
     return location.pathname === path;
   };
 
+  const { logout, currentUser } = useAuth();
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    // Add logout logic here if needed
-    console.log('Logout clicked');
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -30,6 +34,19 @@ const Layout = ({ children }) => {
               <p>Sistema de Gestión</p>
             </div>
           </div>
+          
+          {/* User info */}
+          {currentUser && (
+            <div className="user-info">
+              <div className="user-avatar">
+                <User size={18} />
+              </div>
+              <div className="user-details">
+                <span className="user-name">{currentUser.nombre}</span>
+                <span className="user-role">{currentUser.nombre_rol}</span>
+              </div>
+            </div>
+          )}
 
           {/* Logout Button */}
           <button className="logout-btn" onClick={handleLogout}>

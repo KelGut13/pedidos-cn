@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, TrendingUp, Users, DollarSign, Clock, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { pedidosService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [stats, setStats] = useState({
     totalPedidos: 0,
     pedidosHoy: 0,
@@ -16,17 +19,19 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    // Solo cargar datos si el usuario está autenticado y no está cargando la auth
+    if (isAuthenticated && !authLoading) {
+      fetchDashboardData();
+    }
+  }, [isAuthenticated, authLoading]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Obtener estadísticas de pedidos
-      const pedidosResponse = await fetch('http://localhost:5002/api/pedidos');
-      const pedidosData = await pedidosResponse.json();
+      // Usar el servicio de API que tiene configurado el token automáticamente
+      const pedidosData = await pedidosService.getAll();
       
       // Extraer el array de pedidos de la respuesta
       const pedidos = pedidosData.success ? pedidosData.data : [];
@@ -93,15 +98,33 @@ const Dashboard = () => {
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pendiente': return 'pendiente';
+  const getStatusClass = (estado) => {
+    switch (estado.toLowerCase()) {
+      case 'entregado': return 'entregado';
+      case 'enviado': return 'enviado';
       case 'procesando': return 'procesando';
       case 'completado': return 'completado';
       case 'cancelado': return 'cancelado';
       default: return 'pendiente';
     }
   };
+
+  // Si está cargando la autenticación, mostrar pantalla de carga
+  if (authLoading) {
+    return (
+      <div className="dashboard">
+        <div className="loading">
+          <div className="spinner"></div>
+          <p>Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado, no mostrar nada (el router debería redirigir)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -215,7 +238,7 @@ const Dashboard = () => {
                     <p>Cliente ID: {order.usuario_id} • {formatDate(order.fecha_pedido)}</p>
                   </div>
                 </div>
-                <div className={`order-status ${getStatusColor(order.estado)}`}>
+                <div className={`order-status ${getStatusClass(order.estado)}`}>
                   {order.estado || 'Pendiente'}
                 </div>
               </motion.div>

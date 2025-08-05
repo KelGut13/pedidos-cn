@@ -1,12 +1,32 @@
-const { pool } = require('../config/database');
-const connection = pool;
+const { query } = require('../config/database');
 
 class PedidoModel {
+  // URL base para imágenes del servidor de admin
+  static getImageUrl(imagePath) {
+    if (!imagePath) return null;
+    
+    // Si ya es una URL completa, reemplazar localhost:3001 con el servidor de admin
+    if (imagePath.startsWith('http://localhost:3001')) {
+      return imagePath.replace('http://localhost:3001', 'https://api.curiosidadesnancy.shop');
+    }
+    
+    // Si es una URL completa de otro servidor, devolverla tal como está
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // Si es un path relativo, construir la URL completa
+    const baseUrl = 'https://api.curiosidadesnancy.shop';
+    if (imagePath.startsWith('/')) {
+      return `${baseUrl}${imagePath}`;
+    }
+    return `${baseUrl}/uploads/${imagePath}`;
+  }
   
   // Obtener todos los pedidos con información del usuario y dirección
   static async obtenerTodos() {
     try {
-      const query = `
+      const sql = `
         SELECT 
           p.ID_pedido as id,
           p.fecha,
@@ -24,7 +44,7 @@ class PedidoModel {
         ORDER BY p.fecha DESC
       `;
       
-      const [rows] = await connection.execute(query);
+      const rows = await query(sql);
       return rows;
     } catch (error) {
       console.error('Error al obtener pedidos:', error);
@@ -59,7 +79,7 @@ class PedidoModel {
         WHERE p.ID_pedido = ?
       `;
       
-      const [pedidoRows] = await connection.execute(queryPedido, [id]);
+      const pedidoRows = await query(queryPedido, [id]);
       
       if (pedidoRows.length === 0) {
         return null;
@@ -91,16 +111,25 @@ class PedidoModel {
         ORDER BY p.nombre
       `;
       
-      const [productosRows] = await connection.execute(queryProductos, [id]);
+      const productosRows = await query(queryProductos, [id]);
       
       // Construir el objeto pedido completo
       const pedidoCompleto = {
         ...pedido,
         direccion_completa: `${pedido.calle} ${pedido.numero_exterior}${pedido.numero_interior ? ' Int. ' + pedido.numero_interior : ''}, ${pedido.colonia}, ${pedido.ciudad}, ${pedido.estado_direccion} CP ${pedido.codigo_postal}`,
-        detalles: productosRows.map(producto => ({
-          ...producto,
-          imagen: producto.imagen ? producto.imagen.split(',')[0] : null // Tomar solo la primera imagen
-        }))
+        detalles: productosRows.map(producto => {
+          // Procesar las imágenes
+          let imagenProcesada = producto.imagen;
+          if (imagenProcesada) {
+            imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:3001/g, 'https://api.curiosidadesnancy.shop');
+            imagenProcesada = imagenProcesada.split(',')[0]; // Tomar solo la primera imagen
+          }
+          
+          return {
+            ...producto,
+            imagen: imagenProcesada
+          };
+        })
       };
       
       return pedidoCompleto;
@@ -113,13 +142,13 @@ class PedidoModel {
   // Actualizar estado de un pedido
   static async actualizarEstado(id, nuevoEstado) {
     try {
-      const query = `
+      const sql = `
         UPDATE pedidos 
         SET estado = ?
         WHERE ID_pedido = ?
       `;
       
-      const [result] = await connection.execute(query, [nuevoEstado, id]);
+      const result = await query(sql, [nuevoEstado, id]);
       
       if (result.affectedRows === 0) {
         throw new Error('Pedido no encontrado');
@@ -157,8 +186,8 @@ class PedidoModel {
 
       const stats = {};
       
-      for (const [key, query] of Object.entries(queries)) {
-        const [rows] = await connection.execute(query);
+      for (const [key, sql] of Object.entries(queries)) {
+        const rows = await query(sql);
         stats[key] = rows[0].count !== undefined ? rows[0].count : rows[0].total;
       }
       
@@ -172,7 +201,7 @@ class PedidoModel {
   // Obtener pedidos por estado
   static async obtenerPorEstado(estado) {
     try {
-      const query = `
+      const sql = `
         SELECT 
           p.ID_pedido as id,
           p.fecha,
@@ -187,7 +216,7 @@ class PedidoModel {
         ORDER BY p.fecha DESC
       `;
       
-      const [rows] = await connection.execute(query, [estado]);
+      const rows = await query(sql, [estado]);
       return rows;
     } catch (error) {
       console.error('Error al obtener pedidos por estado:', error);
@@ -198,7 +227,7 @@ class PedidoModel {
   // Buscar pedidos por término de búsqueda
   static async buscar(termino) {
     try {
-      const query = `
+      const sql = `
         SELECT 
           p.ID_pedido as id,
           p.fecha,
@@ -218,7 +247,7 @@ class PedidoModel {
       `;
       
       const searchTerm = `%${termino}%`;
-      const [rows] = await connection.execute(query, [
+      const rows = await query(sql, [
         searchTerm, searchTerm, searchTerm, searchTerm, searchTerm
       ]);
       
@@ -233,7 +262,7 @@ class PedidoModel {
   static async initializeTable() {
     try {
       // Solo verificar que la tabla existe
-      const [rows] = await connection.execute('DESCRIBE pedidos');
+      const rows = await query('DESCRIBE pedidos');
       console.log('✅ Tabla "pedidos" verificada exitosamente');
       return true;
     } catch (error) {

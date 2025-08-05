@@ -1,6 +1,28 @@
 const { query } = require('../config/database');
 
 class ProductoModel {
+    // URL base para imágenes del servidor de admin
+    static getImageUrl(imagePath) {
+        if (!imagePath) return null;
+        
+        // Si ya es una URL completa, reemplazar localhost:3001 con el servidor de admin
+        if (imagePath.startsWith('http://localhost:3001')) {
+            return imagePath.replace('http://localhost:3001', 'https://api.curiosidadesnancy.shop');
+        }
+        
+        // Si es una URL completa de otro servidor, devolverla tal como está
+        if (imagePath.startsWith('http')) {
+            return imagePath;
+        }
+        
+        // Si es un path relativo, construir la URL completa
+        const baseUrl = 'https://api.curiosidadesnancy.shop';
+        if (imagePath.startsWith('/')) {
+            return `${baseUrl}${imagePath}`;
+        }
+        return `${baseUrl}/uploads/${imagePath}`;
+    }
+
     // Obtener todos los productos con información relacionada
     static async getAllProductos() {
         try {
@@ -25,7 +47,24 @@ class ProductoModel {
                 WHERE p.activo = 1
                 ORDER BY p.nombre
             `;
-            return await query(sql);
+            const productos = await query(sql);
+            
+            // Procesar las imágenes para agregar URLs completas
+            return productos.map(producto => {
+                // Procesar el string completo de imágenes
+                let imagenProcesada = producto.imagen;
+                if (imagenProcesada) {
+                    imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:3001/g, 'https://api.curiosidadesnancy.shop');
+                }
+                
+                return {
+                    ...producto,
+                    imagen: imagenProcesada,
+                    imagenes: imagenProcesada ? 
+                        imagenProcesada.split(',').map(img => img.trim()) :
+                        []
+                };
+            });
         } catch (error) {
             console.error('Error al obtener productos:', error);
             throw error;
@@ -60,7 +99,25 @@ class ProductoModel {
                 WHERE p.ID_producto = ?
             `;
             const results = await query(sql, [id]);
-            return results[0] || null;
+            const producto = results[0] || null;
+            
+            if (producto) {
+                // Procesar las imágenes para agregar URLs completas
+                let imagenProcesada = producto.imagen;
+                if (imagenProcesada) {
+                    imagenProcesada = imagenProcesada.replace(/http:\/\/localhost:3001/g, 'https://api.curiosidadesnancy.shop');
+                }
+                
+                return {
+                    ...producto,
+                    imagen: imagenProcesada,
+                    imagenes: imagenProcesada ? 
+                        imagenProcesada.split(',').map(img => img.trim()) :
+                        []
+                };
+            }
+            
+            return null;
         } catch (error) {
             console.error('Error al obtener producto por ID:', error);
             throw error;

@@ -3,20 +3,29 @@ const cors = require('cors');
 require('dotenv').config();
 
 // Importar configuración de base de datos y modelos
-const { testConnection } = require('./config/database');
+const { testConnection, query } = require('./config/database');
 const PedidoModel = require('./models/PedidoModel');
+const DatabaseInitializer = require('./config/initializer');
 
 // Importar rutas
 const pedidosRoutes = require('./routes/pedidos');
 const usuariosRoutes = require('./routes/usuarios');
 const productosRoutes = require('./routes/productos');
+const authRoutes = require('./routes/auth');
+const adminUtilsRoutes = require('./routes/admin-utils');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3002'], // Permitir solicitudes desde ambos puertos
+    origin: [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:3002',
+        'https://api.curiosidadesnancy.shop',
+        'https://curiosidadesnancy.shop'
+    ], // Permitir solicitudes desde múltiples puertos y el servidor de admin
     credentials: true
 }));
 app.use(express.json());
@@ -36,6 +45,28 @@ app.get('/', (req, res) => {
 app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/productos', productosRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminUtilsRoutes);
+
+// Ruta proxy para imágenes del servidor de admin
+app.get('/api/images/*', async (req, res) => {
+    try {
+        const imagePath = req.params[0];
+        const imageUrl = `https://api.curiosidadesnancy.shop/uploads/${imagePath}`;
+        
+        // Hacer una petición al servidor de admin para obtener la imagen
+        const axios = require('axios');
+        const response = await axios.get(imageUrl, {
+            responseType: 'stream'
+        });
+        
+        // Reenviar la imagen al cliente
+        response.data.pipe(res);
+    } catch (error) {
+        console.error('Error al obtener imagen:', error);
+        res.status(404).json({ error: 'Imagen no encontrada' });
+    }
+});
 
 // Ruta de salud de la base de datos
 app.get('/api/health/db', async (req, res) => {
@@ -84,8 +115,18 @@ async function initializeDatabase() {
             return false;
         }
 
-        // Inicializar tablas
-        await PedidoModel.initializeTable();
+        // Verificar que la tabla pedidos existe
+        try {
+            await query('SELECT 1 FROM pedidos LIMIT 1');
+            console.log('✅ Tabla "pedidos" verificada exitosamente');
+        } catch (error) {
+            console.log('❌ Error: la tabla "pedidos" no existe en la base de datos');
+            return false;
+        }
+        
+        // Inicializar datos de la base de datos
+        console.log('🔄 Iniciando inicialización de la base de datos...');
+        await DatabaseInitializer.initialize();
         
         console.log('✅ Base de datos inicializada correctamente');
         return true;
@@ -105,7 +146,7 @@ async function startServer() {
         // Iniciar servidor
         app.listen(PORT, () => {
             console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
-            console.log(`📱 Frontend esperado en http://localhost:3002`);
+            console.log(`📱 Frontend corriendo en http://localhost:3001`);
             if (dbConnected) {
                 console.log(`📊 Base de datos: ${process.env.DB_NAME}`);
                 console.log(`🌐 Host DB: ${process.env.DB_HOST}`);
