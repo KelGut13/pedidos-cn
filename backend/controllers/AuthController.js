@@ -43,17 +43,8 @@ class AuthController {
             
             // Verificar contraseña
             console.log('🔐 Verificando contraseña...');
-            let passwordValida = false;
-            
-            try {
-                passwordValida = await bcrypt.compare(password, usuario.password);
-                console.log('✅ Verificación bcrypt exitosa:', passwordValida);
-            } catch (bcryptError) {
-                console.log('⚠️ Bcrypt falló, verificando contraseña en texto plano:', bcryptError.message);
-                passwordValida = (password === usuario.password);
-                console.log('📝 Verificación texto plano:', passwordValida);
-            }
-            
+            const passwordValida = await bcrypt.compare(password, usuario.password);
+
             if (!passwordValida) {
                 console.log('❌ Contraseña incorrecta');
                 return res.status(401).json({
@@ -69,9 +60,9 @@ class AuthController {
                 { 
                     userId: usuario.ID_usuario,
                     email: usuario.email,
-                    rol: 2 // Asumimos que todos son administradores
+                    rol: usuario.ID_rol
                 },
-                process.env.JWT_SECRET || 'secreto_predeterminado',
+                process.env.JWT_SECRET,
                 { expiresIn: '12h' }
             );
 
@@ -83,8 +74,8 @@ class AuthController {
                 segundo_apellido: usuario.segundo_apellido,
                 email: usuario.email,
                 telefono: usuario.telefono,
-                ID_rol: 2,
-                nombre_rol: "Administrador"
+                ID_rol: usuario.ID_rol,
+                nombre_rol: Number(usuario.ID_rol) === 1 ? "Administrador" : "Cliente"
             };
 
             console.log('🎉 Login completado exitosamente para:', email);
@@ -116,7 +107,7 @@ class AuthController {
                 });
             }
 
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_predeterminado');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
             
             res.json({
                 success: true,

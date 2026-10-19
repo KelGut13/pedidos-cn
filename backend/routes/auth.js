@@ -1,14 +1,11 @@
 const express = require('express');
 const AuthController = require('../controllers/AuthController');
-const AuthControllerSimple = require('../controllers/AuthControllerSimple');
 
 const router = express.Router();
 
 // POST /api/auth/login - Login de usuario
 router.post('/login', AuthController.login);
 
-// POST /api/auth/login-simple - Login simplificado para debugging
-router.post('/login-simple', AuthControllerSimple.login);
 
 // POST /api/auth/validar-token - Validar token JWT
 router.post('/validar-token', AuthController.validarToken);

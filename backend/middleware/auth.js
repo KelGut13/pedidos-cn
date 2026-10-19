@@ -17,7 +17,7 @@ exports.authenticateAdmin = async (req, res, next) => {
         const token = authHeader.split(' ')[1];
         
         // Verificar token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto_predeterminado');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
         // Verificar que el usuario existe en la base de datos
         const query = 'SELECT * FROM usuarios WHERE ID_usuario = ?';
@@ -32,14 +32,15 @@ exports.authenticateAdmin = async (req, res, next) => {
         
         const usuario = users[0];
         
-        // Para este sistema, asumimos que todos los usuarios tienen permisos de admin
-        // En el futuro puedes verificar usuario.ID_rol === 2 si implementas roles
-        
+        if (Number(usuario.ID_rol) !== 1) {
+            return res.status(403).json({ success: false, error: 'Se requiere rol de administrador' });
+        }
+
         // Añadir datos de usuario al request
         req.user = {
             userId: usuario.ID_usuario,
             email: usuario.email,
-            rol: 2, // Asumimos admin
+            rol: usuario.ID_rol,
             nombre: usuario.nombre
         };
         

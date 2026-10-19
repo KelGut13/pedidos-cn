@@ -1,108 +1,31 @@
-# Sistema de Pedidos CN
+# Pedidos CN
 
-Sistema de gestión de pedidos con autenticación de usuarios.
+Panel web de administración de pedidos, productos y usuarios. React consume una API Express conectada a MySQL.
 
-## Estructura del proyecto
+## Desarrollo
 
-El proyecto está organizado en dos partes principales:
+Instala dependencias en la raíz y en `backend/`. Copia `backend/.env.example` a `backend/.env`, configura una base de pruebas y un `JWT_SECRET` único. Ejecuta frontend y backend con los scripts de sus respectivos `package.json`.
 
-- **Backend**: API REST con Node.js y Express
-- **Frontend**: Aplicación web con React
-
-## Requisitos
-
-- Node.js 14.x o superior
-- MySQL 5.7 o superior
-
-## Configuración inicial
-
-### Base de datos
-
-1. Crea una base de datos MySQL llamada `joyeria`
-2. Importa el archivo SQL inicial (si existe) o espera a que la aplicación cree las tablas automáticamente
-
-### Backend
-
-1. Navega a la carpeta `/backend`
-2. Configura el archivo `.env` con tus credenciales de base de datos
-3. Instala las dependencias:
-
-```bash
-cd backend
+```sh
 npm install
-```
-
-4. Inicia el servidor:
-
-```bash
+npm --prefix backend install
+npm --prefix backend start
+# En otra terminal:
 npm start
 ```
 
-El servidor estará disponible en `http://localhost:5002`
+El frontend configura la API en `src/services/api.js`. Verifica sus URLs antes de iniciar. Los archivos SQL son datos de ejemplo y no garantizan un esquema completo; utiliza únicamente una base local descartable.
 
-### Frontend
+## Autorización
 
-1. Navega a la carpeta raíz
-2. Instala las dependencias:
+Las rutas administrativas comprueban el rol almacenado en `usuarios`: `ID_rol=1` es administrador, según los roles definidos en el inicializador. No basta con que un token declare ser administrador. Las contraseñas deben almacenarse con bcrypt; se eliminó la compatibilidad con contraseñas en texto plano. Las cuentas antiguas requieren una migración segura si conservan ese formato.
 
-```bash
-npm install
+Se retiraron las utilidades temporales que permitían listar personal o modificar contraseñas sin autenticación, el acceso ficticio de diagnóstico y las copias de controladores en desuso. Los fixtures utilizan direcciones de ejemplo.
+
+```sh
+npm run test:security
 ```
 
-3. Inicia la aplicación:
+Las pruebas de autorización no acceden a MySQL y verifican que un cliente no obtenga privilegios administrativos aunque su token los declare.
 
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-## Ejecutar ambos a la vez (desarrollo)
-
-Para ejecutar tanto el backend como el frontend simultáneamente:
-
-```bash
-cd <ruta-del-proyecto>
-cp dev-package.json package.json
-npm install
-npm run dev
-```
-
-## Credenciales disponibles
-
-La base de datos ya contiene usuarios. Puedes iniciar sesión con cualquiera de estos emails:
-
-- **Email**: usuario-1@example.com (Kelvim Isahí Sandoval Gutiérrez)
-- **Email**: usuario-2@example.com (Gustavo Adolfo Nava Meraz)  
-- **Email**: usuario-3@example.com (Jesus Cruz Figueroa)
-
-**Nota importante**: 
-- Todos los usuarios en esta base de datos tienen permisos de administrador
-- Las contraseñas están hasheadas en la base de datos remota
-- Contacta al administrador del sistema para obtener las contraseñas
-
-## Características principales
-
-- Autenticación de usuarios (solo administradores)
-- Control de acceso basado en roles
-- Gestión de pedidos
-- Gestión de productos
-- Dashboard con estadísticas
-- Panel de administración seguro
-
-## Tecnologías utilizadas
-
-- **Backend**:
-  - Node.js
-  - Express
-  - MySQL
-  - JSON Web Tokens (JWT)
-
-- **Frontend**:
-  - React
-  - React Router
-  - Framer Motion
-  - Lucide React
-
-
-
-
+Estado: proyecto en desarrollo, pendiente de revisar el esquema completo, los modelos de usuarios y las operaciones administrativas de extremo a extremo. No usar como panel de producción sin completar esa validación. La anonimización de la rama actual no elimina datos de commits anteriores.
