@@ -10,7 +10,7 @@ ON DUPLICATE KEY UPDATE nombre_rol = VALUES(nombre_rol);
 -- Insertar usuario administrador de prueba
 -- Contraseña: admin123 (hasheada con bcrypt)
 INSERT INTO usuarios (nombre, email, password, telefono, id_rol) VALUES 
-('Administrador Sistema', 'admin@pedidoscn.com', '$2a$10$rOvwZ8kYq8mxVpL1kQV4XuVJ8wQJZ5nN8fX6mY2hQ1sK9rT3vW7ei', '5555555555', 1)
+('Administrador Sistema', 'usuario-1@example.com', '$2a$10$rOvwZ8kYq8mxVpL1kQV4XuVJ8wQJZ5nN8fX6mY2hQ1sK9rT3vW7ei', '5555555555', 1)
 ON DUPLICATE KEY UPDATE 
     nombre = VALUES(nombre),
     telefono = VALUES(telefono),
@@ -18,7 +18,7 @@ ON DUPLICATE KEY UPDATE
 
 -- Insertar un usuario cliente de prueba
 INSERT INTO usuarios (nombre, email, password, telefono, id_rol) VALUES 
-('Juan Pérez', 'cliente@test.com', '$2a$10$rOvwZ8kYq8mxVpL1kQV4XuVJ8wQJZ5nN8fX6mY2hQ1sK9rT3vW7ei', '5551234567', 2)
+('Juan Pérez', 'usuario-2@example.com', '$2a$10$rOvwZ8kYq8mxVpL1kQV4XuVJ8wQJZ5nN8fX6mY2hQ1sK9rT3vW7ei', '5551234567', 2)
 ON DUPLICATE KEY UPDATE 
     nombre = VALUES(nombre),
     telefono = VALUES(telefono),

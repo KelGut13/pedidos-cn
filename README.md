@@ -71,9 +71,9 @@ npm run dev
 
 La base de datos ya contiene usuarios. Puedes iniciar sesión con cualquiera de estos emails:
 
-- **Email**: tic-300015@utnay.edu.mx (Kelvim Isahí Sandoval Gutiérrez)
-- **Email**: tic-300078@utnay.edu.mx (Gustavo Adolfo Nava Meraz)  
-- **Email**: tic-300170@utnay.edu.mx (Jesus Cruz Figueroa)
+- **Email**: usuario-1@example.com (Kelvim Isahí Sandoval Gutiérrez)
+- **Email**: usuario-2@example.com (Gustavo Adolfo Nava Meraz)  
+- **Email**: usuario-3@example.com (Jesus Cruz Figueroa)
 
 **Nota importante**: 
 - Todos los usuarios en esta base de datos tienen permisos de administrador

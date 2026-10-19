@@ -12,7 +12,6 @@ const pedidosRoutes = require('./routes/pedidos');
 const usuariosRoutes = require('./routes/usuarios');
 const productosRoutes = require('./routes/productos');
 const authRoutes = require('./routes/auth');
-const adminUtilsRoutes = require('./routes/admin-utils');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -46,7 +45,6 @@ app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/productos', productosRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminUtilsRoutes);
 
 // Ruta proxy para imágenes del servidor de admin
 app.get('/api/images/*', async (req, res) => {

@@ -15,7 +15,7 @@ const usuariosPrueba = [
     nombre: 'María',
     primer_apellido: 'García',
     segundo_apellido: 'López',
-    email: 'maria.garcia@gmail.com',
+    email: 'usuario-5@example.com',
     password: '$2b$10$dummy.hash.for.testing',
     telefono: '5551234567'
   },
@@ -23,7 +23,7 @@ const usuariosPrueba = [
     nombre: 'Carlos',
     primer_apellido: 'Rodríguez',
     segundo_apellido: 'Martínez',
-    email: 'carlos.rodriguez@hotmail.com',
+    email: 'usuario-2@example.com',
     password: '$2b$10$dummy.hash.for.testing',
     telefono: '5559876543'
   },
@@ -31,7 +31,7 @@ const usuariosPrueba = [
     nombre: 'Ana',
     primer_apellido: 'López',
     segundo_apellido: 'Fernández',
-    email: 'ana.lopez@yahoo.com',
+    email: 'usuario-1@example.com',
     password: '$2b$10$dummy.hash.for.testing',
     telefono: '5554567890'
   },
@@ -39,7 +39,7 @@ const usuariosPrueba = [
     nombre: 'José',
     primer_apellido: 'Martínez',
     segundo_apellido: 'Cruz',
-    email: 'jose.martinez@outlook.com',
+    email: 'usuario-3@example.com',
     password: '$2b$10$dummy.hash.for.testing',
     telefono: '5553219876'
   },
@@ -47,7 +47,7 @@ const usuariosPrueba = [
     nombre: 'Laura',
     primer_apellido: 'Fernández',
     segundo_apellido: 'Gutiérrez',
-    email: 'laura.fernandez@gmail.com',
+    email: 'usuario-4@example.com',
     password: '$2b$10$dummy.hash.for.testing',
     telefono: '5556543210'
   }
